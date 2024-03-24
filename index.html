@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LERP ANIMATION</title>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+
+        body {
+            background-color: #252629;
+        }
+
+        body.recording {
+            cursor: none;
+        }
+
+        svg {
+            /*border: 1px solid black;*/
+            /*cursor: none;*/
+        }
+
+        :fullscreen,
+        ::backdrop {
+            background-color: rgba(255, 255, 255, 0);
+        }
+
+        #recording-toggle {
+            position: absolute;
+            bottom: 0px;
+            opacity: 0;
+        }
+
+        #recording-toggle:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg" id="svg-canvas"></svg>
+    <!--<script src="./script/animator.js"></script>-->
+    <button id="recording-toggle">Record</button>
+    <script src="./script/animator_2.js"></script>
+    <script src="./script/knn.js"></script>
+
+    <script defer>
+        var RECORDING_ONGOING = false;
+        var recordingToggle = document.getElementById("recording-toggle"); // The button
+
+        recordingToggle.addEventListener("click", function () {
+            RECORDING_ONGOING = !RECORDING_ONGOING; // Start / Stop recording
+            if (RECORDING_ONGOING) {
+                recordingToggle.innerHTML = "Stop Recording";
+                startRecording(); // Start the recording
+                document.body.classList.add("recording");
+            } else {
+                recordingToggle.innerHTML = "Start Recording";
+                stopRecording(); // Stop screen recording
+                document.body.classList.remove("recording");
+            }
+        });
+        var blob, deviceRecorder = null;
+        var chunks = [];
+
+        async function startRecording() {
+            var stream = await navigator.mediaDevices.getDisplayMedia({
+                preferCurrentTab: true,
+                selfBrowserSurface: "include", video: { mediaSource: "screen" }, audio: true
+            })
+            deviceRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+            deviceRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            }
+            deviceRecorder.onstop = () => {
+                chunks = [];
+            }
+            deviceRecorder.start(250)
+        }
+        console.log(MediaRecorder.isTypeSupported("video/webm"))
+        console.log(MediaRecorder.isTypeSupported("video/mp4"))
+        console.log(MediaRecorder.isTypeSupported("video/mp4;codecs=avc1"))
+
+        function stopRecording() {
+            var filename = "lerp_editor_video"; // Ask the file name
+            deviceRecorder.stop(); // Stopping the recording
+            blob = new Blob(chunks, { type: "video/webm" })
+            chunks = [] // Resetting the data chunks
+            var dataDownloadUrl = URL.createObjectURL(blob);
+
+            // Downloadin it onto the user's device
+            let a = document.createElement('a')
+            a.href = dataDownloadUrl;
+            a.download = `${filename}.webm`
+            a.click()
+
+            URL.revokeObjectURL(dataDownloadUrl)
+        }
+    </script>
+</body>
+
+</html>
